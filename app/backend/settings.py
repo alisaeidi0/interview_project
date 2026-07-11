@@ -55,6 +55,9 @@ class BackendSettings:
     temperature: float = 0.0
     max_chunk_chars: int = 1400
     chunk_overlap_chars: int = 200
+    # Below this composite confidence, an answer is treated as a non-answer: citations
+    # are dropped and it is stamped unrouted (avoids parading sources on a weak/refused reply).
+    min_answer_confidence: float = 0.15
 
     # Guardrails.
     guard_input_threshold: float = 0.5  # Prompt Guard 2 injection probability to block

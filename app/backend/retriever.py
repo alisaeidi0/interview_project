@@ -1,9 +1,14 @@
 """Two-stage retrieval: dense search + similarity floor, then cross-encoder re-rank.
 
 Stage 1 pulls a wide candidate set from ChromaDB (optionally domain-filtered) and drops
-anything below a cosine-similarity floor. Stage 2 re-scores the survivors with a
-cross-encoder and keeps the top-k above a re-rank floor. If nothing survives, the
-evidence gate returns empty so the agent can refuse instead of answering weakly.
+anything below a cosine-similarity floor — this floor IS the evidence gate: if nothing
+survives, retrieval returns empty and the agent refuses. Stage 2 re-scores the survivors
+with a cross-encoder and keeps the top-k, which improves ordering and citation accuracy.
+
+Note: the cross-encoder is used for ordering/selection, not as a hard threshold —
+bge-reranker logits are uncalibrated (often negative for relevant passages), so
+`rerank_floor` is effectively disabled and the confidence's relevance term is derived
+from the calibrated stage-1 cosine similarity instead.
 """
 
 from __future__ import annotations

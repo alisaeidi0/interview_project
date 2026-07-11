@@ -11,8 +11,6 @@ from app.backend.llm import chat
 from app.backend.settings import BackendSettings
 from app.backend.sources import MAINTENANCE, QUALITY, SAFETY
 
-_VALID = {SAFETY, MAINTENANCE, QUALITY}
-
 _SYSTEM = (
     "You route plant-floor questions to exactly one documentation domain.\n"
     "Domains:\n"
@@ -38,7 +36,20 @@ def route(settings: BackendSettings, question: str) -> str | None:
         max_tokens=8,
     ).lower().strip().strip(".")
 
-    for domain in _VALID:
-        if domain in label:
-            return domain
+    return _normalize(label)
+
+
+def _normalize(label: str) -> str | None:
+    """Map the model's label to a domain, tolerating shortened forms.
+
+    Checked in priority order so a deterministic result is returned even if the label
+    contains more than one keyword. 'quality_control' is the label most likely to be
+    emitted in a short form ('quality', 'qc'), so it needs explicit aliases.
+    """
+    if "maintenance" in label:
+        return MAINTENANCE
+    if "safety" in label:
+        return SAFETY
+    if "quality" in label or "quality_control" in label or label == "qc" or "qc " in label:
+        return QUALITY
     return None

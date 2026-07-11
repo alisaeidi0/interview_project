@@ -12,6 +12,7 @@ guard failure degrades to normal answering rather than blocking legitimate quest
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import structlog
@@ -20,6 +21,20 @@ from app.backend.llm import chat
 from app.backend.settings import BackendSettings
 
 log = structlog.get_logger("guardrails")
+
+# Backstop heuristics for obvious injection / code-execution attempts, in case the
+# classifier's output can't be parsed (adversarial inputs may perturb its format).
+_HEURISTICS = [
+    re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions", re.I),
+    re.compile(r"disregard\s+(the\s+)?(system|previous|above)", re.I),
+    re.compile(r"reveal|print|show\s+(me\s+)?(your\s+)?(system\s+prompt|instructions)", re.I),
+    re.compile(r"you\s+are\s+now\s+|act\s+as\s+|pretend\s+to\s+be", re.I),
+    re.compile(r"<\s*script|os\.system|subprocess|eval\(|exec\(|__import__", re.I),
+]
+
+
+def _looks_like_injection(text: str) -> bool:
+    return any(p.search(text) for p in _HEURISTICS)
 
 _OUTPUT_POLICY = (
     "You are a content-safety classifier for a workplace manufacturing documentation "
@@ -39,7 +54,13 @@ class InputVerdict:
 
 
 def check_input(settings: BackendSettings, text: str) -> InputVerdict:
-    """Classify a user message for prompt injection / jailbreak."""
+    """Classify a user message for prompt injection / jailbreak.
+
+    Primary signal is Prompt Guard 2's injection probability. If the model errors or
+    returns an unparseable format (which adversarial inputs can provoke), fall back to
+    a regex backstop rather than silently allowing — only a clean, benign classifier
+    result or a benign-looking heuristic lets the request through.
+    """
     try:
         raw = chat(
             settings,
@@ -48,10 +69,18 @@ def check_input(settings: BackendSettings, text: str) -> InputVerdict:
             temperature=0.0,
             max_tokens=8,
         )
+    except Exception as exc:  # noqa: BLE001 - model/transport failure
+        blocked = _looks_like_injection(text)
+        log.warning("input_guard_error", error=str(exc)[:200], heuristic_blocked=blocked)
+        return InputVerdict(blocked=blocked, injection_score=1.0 if blocked else 0.0)
+
+    try:
         score = float(raw.strip())
-    except Exception as exc:  # noqa: BLE001 - fail open (allow) on guard failure, but log
-        log.warning("input_guard_error", error=str(exc)[:200])
-        return InputVerdict(blocked=False, injection_score=0.0)
+    except ValueError:
+        # Classifier returned something other than a probability — don't trust "allow".
+        blocked = _looks_like_injection(text)
+        log.warning("input_guard_unparseable", raw=raw[:80], heuristic_blocked=blocked)
+        return InputVerdict(blocked=blocked, injection_score=1.0 if blocked else 0.0)
 
     blocked = score >= settings.guard_input_threshold
     if blocked:

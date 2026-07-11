@@ -172,7 +172,7 @@ def finalize_node(state: AgentState) -> AgentState:
     # Only cite when we're actually grounding an answer; a near-zero score means the
     # model refused despite the (irrelevant) context, so citations would be spurious.
     answer = state["answer"]
-    if score >= 0.15:
+    if score >= _settings().min_answer_confidence:
         citations = _citations(state["passages"])
         domain = state.get("domain") or "unrouted"
     else:
