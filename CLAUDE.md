@@ -66,9 +66,15 @@ local embeddings + cross-encoder re-rank (`bge-small` / `bge-reranker`) · Chrom
 Postgres · guardrails (Prompt Guard 2, LLM Guard, RAGAS faithfulness, Llama Guard 3) ·
 Langfuse + structlog · Docker Compose. Build order: **frontend → backend → wiring**.
 
+- `app/` — FastAPI frontend: `main.py` (routes), `config.py` (env, fail-fast), `auth.py`
+  (JWT cookie + bcrypt), `stub.py` (canned answers — replace with the agent), `templates/`, `static/`
 - `docs/architecture.md` — approved architecture, stack rationale, diagrams, data sources
+- `requirements.txt` · `.env.example` — frontend deps + config template (`.env` is gitignored)
 - `.claude/agents/` — subagent definitions: `explorer`, `code-reviewer`, `test-author`
 - `.claude/agents/memory/` — persistent per-agent notes, updated after each task
-- `.claude/skills/` — reusable playbooks, added as repeatable patterns emerge
+- `.claude/skills/frontend-chat-ui/` — how the frontend is built, the `/api/chat` contract, how to wire the backend
+
+Run: `.venv/bin/uvicorn app.main:app --reload --port 8000` (see README). Demo login `supervisor` / `DEMO_PASSWORD`.
+Frontend `/api/chat` currently served by `app/stub.py`; swap for the LangGraph agent keeping the same JSON shape.
 
 _(Update this section as real structure — languages, services, entry points — takes shape.)_

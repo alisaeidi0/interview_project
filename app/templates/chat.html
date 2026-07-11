@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floor Assistant</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body class="chat-body">
+  <header class="chat-header">
+    <div class="brand">
+      <span class="brand-mark">⬢</span>
+      <span class="brand-name">Floor Assistant</span>
+    </div>
+    <div class="header-right">
+      <span class="user-chip">👷 {{ username }}</span>
+      <form method="post" action="/logout"><button class="btn-ghost" type="submit">Sign out</button></form>
+    </div>
+  </header>
+
+  <main class="chat-main">
+    <div id="messages" class="messages" aria-live="polite">
+      <div class="msg assistant">
+        <div class="bubble">
+          <p>Hi — ask me about <strong>safety procedures</strong>, <strong>equipment maintenance</strong>,
+          or <strong>quality-control standards</strong>. I'll route your question to the right documentation
+          and answer with citations and a confidence score.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="suggestions" id="suggestions">
+      <button class="chip" data-q="What are the steps to lock out a machine before servicing?">LOTO steps before servicing</button>
+      <button class="chip" data-q="How often should I lubricate the pump bearings?">Pump bearing lubrication interval</button>
+      <button class="chip" data-q="When is an X-bar control chart out of control?">Reading a control chart</button>
+    </div>
+  </main>
+
+  <footer class="composer">
+    <form id="chat-form" class="composer-form">
+      <textarea id="input" rows="1" placeholder="Ask a question…" autocomplete="off"></textarea>
+      <button id="send" type="submit" class="btn-primary send-btn" aria-label="Send">Send</button>
+    </form>
+    <p class="composer-note">Answers are grounded in indexed documentation. Verify against the cited source before acting.</p>
+  </footer>
+
+  <script src="/static/js/chat.js"></script>
+</body>
+</html>
