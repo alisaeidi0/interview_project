@@ -1,14 +1,15 @@
 """FastAPI entry point for the Manufacturing Floor Assistant frontend.
 
-Serves the login and chat pages, issues JWT session cookies, and exposes stub
-`/api/chat` and `/api/feedback` endpoints so the UI is fully interactive before
-the real LangGraph backend exists. Route contracts match the planned backend so
-wiring the agent in later is a drop-in replacement.
+Serves the login and chat pages, issues JWT session cookies, and exposes the
+`/api/chat` and `/api/feedback` endpoints. `/api/chat` runs the LangGraph agent when
+a Groq key is configured, and falls back to the stub otherwise so the UI always runs.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import threading
 from pathlib import Path
 from typing import Annotated
 
@@ -37,7 +38,29 @@ COOKIE_NAME = "access_token"
 settings: Settings = load_settings()
 user_store = UserStore(settings.demo_username, settings.demo_password)
 
+# Use the real agent when a Groq key is present; otherwise the stub keeps the UI usable.
+USE_AGENT = bool(os.environ.get("GROQ_API_KEY"))
+
 app = FastAPI(title="Manufacturing Floor Assistant", version="0.1.0")
+
+
+@app.on_event("startup")
+def _warm_models() -> None:
+    """Preload retrieval models in the background so the first query is fast."""
+    if not USE_AGENT:
+        logger.info("agent disabled (no GROQ_API_KEY) - using stub responses")
+        return
+
+    def _warm() -> None:
+        try:
+            from app.backend.agent import _retriever  # noqa: PLC0415
+
+            _retriever()  # triggers embedder + reranker load
+            logger.info("agent models warmed")
+        except Exception:  # noqa: BLE001
+            logger.exception("model warmup failed")
+
+    threading.Thread(target=_warm, daemon=True).start()
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
@@ -150,11 +173,27 @@ def chat_page(
 def api_chat(
     payload: ChatRequest, user: Annotated[User, Depends(require_user)]
 ) -> JSONResponse:
-    """Return a stubbed, correctly-shaped grounded answer.
+    """Answer a question via the LangGraph agent (or the stub if no Groq key).
 
-    Replaced by the LangGraph agent later; the response schema is the contract.
+    Returns the shared response schema: answer, domain, confidence, citations.
     """
-    result = stub.answer(payload.message)
+    if USE_AGENT:
+        try:
+            from app.backend.agent import answer_question  # noqa: PLC0415
+
+            result = answer_question(payload.message).to_dict()
+        except Exception:  # noqa: BLE001
+            logger.exception("agent failed for user=%s", user.username)
+            result = {
+                "answer": "Sorry — the assistant hit an error reaching the model. "
+                "Please try again in a moment.",
+                "domain": "unrouted",
+                "confidence": {"level": "low", "score": 0.0},
+                "citations": [],
+            }
+    else:
+        result = stub.answer(payload.message)
+
     logger.info(
         "chat user=%s domain=%s confidence=%s",
         user.username, result["domain"], result["confidence"]["score"],
