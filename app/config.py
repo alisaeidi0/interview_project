@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()  # load .env if present; real env vars still take precedence
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ConfigError(RuntimeError):
@@ -35,8 +38,13 @@ class Settings:
 
     secret_key: str
     access_token_expire_minutes: int
-    demo_username: str
-    demo_password: str
+    db_path: str
+    # Seed accounts (created on first startup if absent).
+    admin_email: str
+    admin_name: str
+    admin_password: str
+    demo_email: str | None
+    demo_password: str | None
     jwt_algorithm: str = "HS256"
 
 
@@ -53,6 +61,11 @@ def load_settings() -> Settings:
     return Settings(
         secret_key=_require("SECRET_KEY"),
         access_token_expire_minutes=expire_minutes,
-        demo_username=os.environ.get("DEMO_USERNAME", "supervisor"),
-        demo_password=_require("DEMO_PASSWORD"),
+        db_path=os.environ.get("APP_DB_PATH", str(REPO_ROOT / "data" / "app.db")),
+        admin_email=os.environ.get("ADMIN_EMAIL", "admin@floor.local"),
+        admin_name=os.environ.get("ADMIN_NAME", "Plant Admin"),
+        admin_password=_require("ADMIN_PASSWORD"),
+        # Optional demo employee — seeded only when DEMO_PASSWORD is set.
+        demo_email=os.environ.get("DEMO_EMAIL", "supervisor@floor.local"),
+        demo_password=os.environ.get("DEMO_PASSWORD"),
     )

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request access · Floor Assistant</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <script>
+    (function () { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); })();
+  </script>
+</head>
+<body class="auth-body">
+  <main class="auth-card">
+    <div class="brand"><span class="brand-mark">⬢</span><h1>Floor Assistant</h1></div>
+    <p class="auth-sub">Request an account. An administrator will review and approve it.</p>
+
+    {% if done %}
+      <div class="auth-ok" role="status">
+        ✓ Request submitted. An administrator will review your access. You'll be able to sign in once approved.
+      </div>
+      <p class="auth-alt"><a href="/login">Back to sign in</a></p>
+    {% else %}
+      {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
+      <form method="post" action="/signup" class="auth-form">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" autocomplete="name" required autofocus />
+
+        <label for="email">Work email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required />
+
+        <label for="requested_role">Requested role</label>
+        <select id="requested_role" name="requested_role" required>
+          <option value="employee">Employee — chatbot &amp; read access</option>
+          <option value="admin">Admin — full access &amp; user management</option>
+        </select>
+        <p class="role-hint">An admin approves your request and confirms your role.</p>
+
+        <button type="submit" class="btn-primary">Request access</button>
+      </form>
+      <p class="auth-alt">Already have an account? <a href="/login">Sign in</a></p>
+    {% endif %}
+  </main>
+</body>
+</html>

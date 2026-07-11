@@ -5,22 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in · Floor Assistant</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
+  <script>
+    // Apply saved theme early to avoid a flash.
+    (function () { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); })();
+  </script>
 </head>
 <body class="auth-body">
   <main class="auth-card">
-    <div class="brand">
-      <span class="brand-mark">⬢</span>
-      <h1>Floor Assistant</h1>
-    </div>
+    <div class="brand"><span class="brand-mark">⬢</span><h1>Floor Assistant</h1></div>
     <p class="auth-sub">Documentation answers for the plant floor — safety, maintenance &amp; quality.</p>
 
-    {% if error %}
-    <div class="auth-error" role="alert">{{ error }}</div>
-    {% endif %}
+    {% if error %}<div class="auth-error" role="alert">{{ error }}</div>{% endif %}
 
     <form method="post" action="/login" class="auth-form">
-      <label for="username">Username</label>
-      <input id="username" name="username" type="text" autocomplete="username" required autofocus />
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required autofocus />
 
       <label for="password">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required />
@@ -28,7 +27,7 @@
       <button type="submit" class="btn-primary">Sign in</button>
     </form>
 
-    <p class="auth-hint">Prototype demo — a supervisor account is seeded locally.</p>
+    <p class="auth-alt">Don't have an account? <a href="/signup">Request access</a></p>
   </main>
 </body>
 </html>

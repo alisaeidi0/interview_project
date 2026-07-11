@@ -5,44 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Floor Assistant</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
+  <script>
+    (function () { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); })();
+  </script>
 </head>
-<body class="chat-body">
-  <header class="chat-header">
-    <div class="brand">
-      <span class="brand-mark">⬢</span>
-      <span class="brand-name">Floor Assistant</span>
-    </div>
-    <div class="header-right">
-      <span class="user-chip">👷 {{ username }}</span>
-      <form method="post" action="/logout"><button class="btn-ghost" type="submit">Sign out</button></form>
-    </div>
-  </header>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="brand"><span class="brand-mark">⬢</span><span class="brand-name">Floor Assistant</span></div>
+      </div>
 
-  <main class="chat-main">
-    <div id="messages" class="messages" aria-live="polite">
-      <div class="msg assistant">
-        <div class="bubble">
-          <p>Hi — ask me about <strong>safety procedures</strong>, <strong>equipment maintenance</strong>,
-          or <strong>quality-control standards</strong>. I'll route your question to the right documentation
-          and answer with citations and a confidence score.</p>
+      <button class="new-chat" id="new-chat">+ New chat</button>
+
+      <div class="sessions-label">Chat history</div>
+      <div class="sessions" id="sessions"></div>
+
+      <div class="sidebar-foot">
+        <button class="theme-toggle" id="theme-toggle"><span id="theme-icon">🌙</span> <span id="theme-label">Dark mode</span></button>
+        {% if user.is_admin %}
+        <a class="admin-link" href="/admin">⚙️ Admin console</a>
+        {% endif %}
+        <div class="user-row">
+          <div class="user-avatar">{{ user.name[0] | upper }}</div>
+          <div class="user-meta">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-role">{{ user.role }}</div>
+          </div>
+        </div>
+        <div class="foot-actions">
+          <form method="post" action="/logout"><button class="btn-ghost" type="submit">Sign out</button></form>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="suggestions" id="suggestions">
-      <button class="chip" data-q="What are the steps to lock out a machine before servicing?">LOTO steps before servicing</button>
-      <button class="chip" data-q="How often should I lubricate the pump bearings?">Pump bearing lubrication interval</button>
-      <button class="chip" data-q="When is an X-bar control chart out of control?">Reading a control chart</button>
-    </div>
-  </main>
+    <!-- Main -->
+    <div class="main-col">
+      <div class="main-head">
+        <button class="menu-btn" id="menu-btn" aria-label="Toggle sidebar">☰</button>
+        <span class="main-title" id="main-title">New chat</span>
+      </div>
 
-  <footer class="composer">
-    <form id="chat-form" class="composer-form">
-      <textarea id="input" rows="1" placeholder="Ask a question…" autocomplete="off"></textarea>
-      <button id="send" type="submit" class="btn-primary send-btn" aria-label="Send">Send</button>
-    </form>
-    <p class="composer-note">Answers are grounded in indexed documentation. Verify against the cited source before acting.</p>
-  </footer>
+      <main class="chat-main">
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div class="suggestions" id="suggestions">
+          <button class="chip" data-q="What must I do to verify zero energy before servicing a machine?">Verify zero energy (LOTO)</button>
+          <button class="chip" data-q="How do I mount and maintain the motor?">Motor mounting &amp; maintenance</button>
+          <button class="chip" data-q="When is a process out of control on a control chart?">Reading a control chart</button>
+        </div>
+      </main>
+
+      <footer class="composer">
+        <form id="chat-form" class="composer-form">
+          <textarea id="input" rows="1" placeholder="Ask a question…" autocomplete="off"></textarea>
+          <button id="send" type="submit" class="btn-primary send-btn" aria-label="Send">Send</button>
+        </form>
+        <p class="composer-note">Answers are grounded in indexed documentation. Verify against the cited source before acting.</p>
+      </footer>
+    </div>
+  </div>
 
   <script src="/static/js/chat.js"></script>
 </body>
