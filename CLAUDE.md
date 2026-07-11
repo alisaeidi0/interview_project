@@ -57,8 +57,16 @@ At the end of every meaningful task, before moving on:
 - Run long commands in the background where possible; keep working on the next piece.
 
 ## Project map
-Just scaffolded — no application code yet.
+Building the **Manufacturing Floor Assistant** — agentic RAG chatbot routing floor-supervisor
+questions to Safety / Maintenance / QC docs with grounded, cited, confidence-scored answers.
+Full design in [docs/architecture.md](docs/architecture.md) (approved 2026-07-11).
 
+Stack: FastAPI + HTML/CSS/JS frontend · LangGraph agent · Groq open-source LLM (temp=0) ·
+local embeddings + cross-encoder re-rank (`bge-small` / `bge-reranker`) · ChromaDB · Redis ·
+Postgres · guardrails (Prompt Guard 2, LLM Guard, RAGAS faithfulness, Llama Guard 3) ·
+Langfuse + structlog · Docker Compose. Build order: **frontend → backend → wiring**.
+
+- `docs/architecture.md` — approved architecture, stack rationale, diagrams, data sources
 - `.claude/agents/` — subagent definitions: `explorer`, `code-reviewer`, `test-author`
 - `.claude/agents/memory/` — persistent per-agent notes, updated after each task
 - `.claude/skills/` — reusable playbooks, added as repeatable patterns emerge
