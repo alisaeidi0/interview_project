@@ -66,15 +66,21 @@ local embeddings + cross-encoder re-rank (`bge-small` / `bge-reranker`) · Chrom
 Postgres · guardrails (Prompt Guard 2, LLM Guard, RAGAS faithfulness, Llama Guard 3) ·
 Langfuse + structlog · Docker Compose. Build order: **frontend → backend → wiring**.
 
-- `app/` — FastAPI frontend: `main.py` (routes), `config.py` (env, fail-fast), `auth.py`
-  (JWT cookie + bcrypt), `stub.py` (canned answers — replace with the agent), `templates/`, `static/`
+- `app/` — FastAPI app: `main.py` (routes + `/api/chat` runs the agent, stub fallback),
+  `config.py` (env, fail-fast), `auth.py` (JWT cookie + bcrypt), `stub.py` (offline fallback),
+  `templates/`, `static/`
+- `app/backend/` — RAG backend: `ingest.py`, `chunking.py`, `embeddings.py`, `vectorstore.py`,
+  `retriever.py`, `router.py`, `judge.py`, `guardrails.py`, `agent.py` (LangGraph), `schemas.py`,
+  `settings.py`, `sources.py`
+- `tests/` — pytest; retrieval/agent tests assert real docs, skip cleanly without key/corpus
+- `data/` — gitignored: downloaded corpus PDFs + ChromaDB (rebuild with ingest)
 - `docs/architecture.md` — approved architecture, stack rationale, diagrams, data sources
-- `requirements.txt` · `.env.example` — frontend deps + config template (`.env` is gitignored)
-- `.claude/agents/` — subagent definitions: `explorer`, `code-reviewer`, `test-author`
-- `.claude/agents/memory/` — persistent per-agent notes, updated after each task
-- `.claude/skills/frontend-chat-ui/` — how the frontend is built, the `/api/chat` contract, how to wire the backend
+- `.claude/skills/` — `frontend-chat-ui`, `backend-rag-agent`, `testing`
+- `.claude/agents/` + `agents/memory/` — subagents (`explorer`, `code-reviewer`, `test-author`) + notes
 
-Run: `.venv/bin/uvicorn app.main:app --reload --port 8000` (see README). Demo login `supervisor` / `DEMO_PASSWORD`.
-Frontend `/api/chat` currently served by `app/stub.py`; swap for the LangGraph agent keeping the same JSON shape.
+Run: `python -m app.backend.ingest --rebuild` (build corpus, once), then
+`.venv/bin/uvicorn app.main:app --port 8000`. Demo login `supervisor` / `DEMO_PASSWORD`.
+`/api/chat` runs the real Groq agent when `GROQ_API_KEY` is set, else the stub. Tests: `pytest tests/`.
+Still to wire (planned): Redis memory/cache, Langfuse observability, feedback→Postgres, Docker Compose, evals.
 
 _(Update this section as real structure — languages, services, entry points — takes shape.)_

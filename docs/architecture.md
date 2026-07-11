@@ -22,9 +22,9 @@ and reports a **confidence score**, and (d) is safe, observable, and auditable.
 | Orchestration | **LangGraph** | Explicit graph = per-step routing, guardrails, citations, and audit are first-class. |
 | Vector DB | **ChromaDB** | Lightweight, local, metadata filtering per doc domain; stores citation metadata. |
 | Memory / cache | **Redis** | Conversation memory + LLM/response cache (also softens Groq rate limits). |
-| Input guardrails | **Prompt Guard 2** (86M classifier) + **LLM Guard** input scanners | Injection / jailbreak / code-exec / banned-topic gate; OSS, self-hostable, light. |
-| Groundedness | **RAGAS Faithfulness** node (LLM-as-judge on Groq) — **advisory** | Verifies answer is supported by retrieved context; feeds the confidence score; low → "insufficient evidence" fallback, not a hard block. |
-| Output safety | **Llama Guard 3** (hosted on Groq) or LLM Guard toxicity scanner | MLCommons safety taxonomy on the response, same provider. |
+| Input guardrails | **Llama Prompt Guard 2** (86M) on Groq — returns injection probability, block ≥ 0.5 | Injection / jailbreak gate; runs before routing so blocked inputs skip all other calls. |
+| Groundedness | **Custom LLM-as-judge** on Groq (fast model) — **advisory** | Verifies answer is supported by retrieved context; feeds the confidence score. (RAGAS is the productionization path; a custom judge avoids its Ollama-oriented timeout issues.) |
+| Output safety | **gpt-oss-safeguard-20b** on Groq (policy-prompted SAFE/UNSAFE) | Safety classification on the response; Llama Guard 3 isn't hosted on Groq, so this is the equivalent. |
 | Observability | **Langfuse** (LangChain `CallbackHandler`) | Per-step tool I/O, tokens, cost, latency, + user-feedback scores on the trace. |
 | Explainability logs | **structlog** JSON, keyed by Langfuse `trace_id` | Durable, queryable audit copy of every agent decision + tool I/O. |
 | App datastore | **Postgres** (users, feedback, audit) | Reuses the Postgres Langfuse needs; avoids SQLite concurrency issues in Docker. |
@@ -128,14 +128,18 @@ flowchart LR
 
 ## 6. Data corpus (all real, sourced; legal status noted)
 
-**Safety (public domain — US gov):** OSHA 3120 (LOTO), OSHA 3170 (machine guarding), 29 CFR 1910.147, NIOSH 2007-131 (ergonomics).
-**Quality Control (public domain — US gov):** NIST/SEMATECH e-Handbook Ch.6 (SPC), MIL-STD-1916 (acceptance sampling).
-**Maintenance (real manufacturer manuals — internal-prototype use only, NOT for redistribution — per client decision):** Goulds 3296-S pump IOM, Baldor MN416 motor manual, Grundfos Pump Handbook.
+**Currently ingested (628 chunks):**
+- **Safety (public domain — US gov):** OSHA 3120 (Lockout/Tagout), OSHA 3170 (machine guarding).
+- **Quality Control (public domain — US gov):** NIST/SEMATECH e-Handbook — Process/Product Monitoring & Control (SPC).
+- **Maintenance (real manufacturer manual — internal-prototype only, NOT for redistribution):** Baldor-Reliance MN416 (AC/DC motor installation & maintenance).
+
+**Ready to add (verified sources in research):** NIOSH 2007-131 (ergonomics), MIL-STD-1916 (acceptance sampling), Grundfos Pump Handbook.
 **Cite-only (do not ingest):** NFPA 70E, ISO 9001 (paywalled / read-only).
 
-> ⚠️ Category B (maintenance) is real manufacturer PDFs: free to download, copyright retained.
+> ⚠️ The maintenance doc is a real manufacturer PDF: free to download, copyright retained.
 > Approved for **internal prototype use**; public redistribution would need manufacturer permission.
-> This caveat is recorded, per the client's decision to use real manuals internal-only.
+> Source URLs shift — the Goulds pump URL from research 404'd at build time, so we used the Baldor
+> motor manual instead (verified live). Licensing is tracked per source in `app/backend/sources.py`.
 
 ## 7. Definition of done for this build
 Routing is measured against a labeled set; answers are graded for faithfulness against retrieved
