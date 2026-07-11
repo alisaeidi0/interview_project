@@ -41,6 +41,7 @@ class AgentState(TypedDict, total=False):
     answer: str
     relevance: float
     groundedness: float
+    blocked: bool
     response: AgentResponse
 
 
@@ -88,6 +89,39 @@ def _citations(passages: list[Passage]) -> list[Citation]:
 
 
 # --- Graph nodes ---
+
+def input_guard_node(state: AgentState) -> AgentState:
+    from app.backend.guardrails import check_input  # noqa: PLC0415
+
+    verdict = check_input(_settings(), state["question"])
+    if verdict.blocked:
+        response = AgentResponse(
+            answer=(
+                "I can't help with that request. I'm here to answer questions about "
+                "safety procedures, equipment maintenance, and quality-control standards."
+            ),
+            domain="unrouted",
+            confidence=confidence_from_score(0.0),
+            citations=[],
+        )
+        return {"blocked": True, "response": response}
+    return {"blocked": False}
+
+
+def output_guard_node(state: AgentState) -> AgentState:
+    """Withhold the answer if the output-safety classifier flags it."""
+    from app.backend.guardrails import check_output  # noqa: PLC0415
+
+    response = state["response"]
+    if response.answer and not check_output(_settings(), response.answer):
+        response = AgentResponse(
+            answer="I'm not able to share that response.",
+            domain="unrouted",
+            confidence=confidence_from_score(0.0),
+            citations=[],
+        )
+    return {"response": response}
+
 
 def route_node(state: AgentState) -> AgentState:
     from app.backend.router import route  # local import keeps router optional in tests
@@ -175,24 +209,32 @@ def _has_evidence(state: AgentState) -> str:
     return "generate" if state.get("passages") else "gate"
 
 
+def _input_ok(state: AgentState) -> str:
+    return "blocked" if state.get("blocked") else "ok"
+
+
 @lru_cache(maxsize=1)
 def _graph():
     """Build and compile the agent graph once."""
     g = StateGraph(AgentState)
+    g.add_node("input_guard", input_guard_node)
     g.add_node("route", route_node)
     g.add_node("retrieve", retrieve_node)
     g.add_node("generate", generate_node)
     g.add_node("judge", judge_node)
     g.add_node("finalize", finalize_node)
     g.add_node("gate", gate_node)
+    g.add_node("output_guard", output_guard_node)
 
-    g.set_entry_point("route")
+    g.set_entry_point("input_guard")
+    g.add_conditional_edges("input_guard", _input_ok, {"blocked": END, "ok": "route"})
     g.add_edge("route", "retrieve")
     g.add_conditional_edges("retrieve", _has_evidence, {"generate": "generate", "gate": "gate"})
     g.add_edge("generate", "judge")
     g.add_edge("judge", "finalize")
-    g.add_edge("finalize", END)
-    g.add_edge("gate", END)
+    g.add_edge("finalize", "output_guard")
+    g.add_edge("gate", "output_guard")
+    g.add_edge("output_guard", END)
     return g.compile()
 
 

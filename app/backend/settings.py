@@ -56,6 +56,9 @@ class BackendSettings:
     max_chunk_chars: int = 1400
     chunk_overlap_chars: int = 200
 
+    # Guardrails.
+    guard_input_threshold: float = 0.5  # Prompt Guard 2 injection probability to block
+
     def require_groq(self) -> str:
         """Return the Groq key or fail fast — call this before invoking the agent."""
         if not self.groq_api_key:
