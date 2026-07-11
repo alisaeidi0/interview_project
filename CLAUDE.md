@@ -66,21 +66,24 @@ local embeddings + cross-encoder re-rank (`bge-small` / `bge-reranker`) · Chrom
 Postgres · guardrails (Prompt Guard 2, LLM Guard, RAGAS faithfulness, Llama Guard 3) ·
 Langfuse + structlog · Docker Compose. Build order: **frontend → backend → wiring**.
 
-- `app/` — FastAPI app: `main.py` (routes + `/api/chat` runs the agent, stub fallback),
-  `config.py` (env, fail-fast), `auth.py` (JWT cookie + bcrypt), `stub.py` (offline fallback),
-  `templates/`, `static/`
+- `app/` — FastAPI app: `main.py` (auth/signup/admin/chat/session/feedback routes),
+  `config.py` (env, fail-fast), `auth.py` (email login, JWT+roles, seeding), `db.py` (SQLite:
+  users/sessions/messages/feedback), `stub.py` (offline fallback), `templates/`, `static/`
 - `app/backend/` — RAG backend: `ingest.py`, `chunking.py`, `embeddings.py`, `vectorstore.py`,
   `retriever.py`, `router.py`, `judge.py`, `guardrails.py`, `agent.py` (LangGraph), `schemas.py`,
   `settings.py`, `sources.py`
-- `tests/` — pytest; retrieval/agent tests assert real docs, skip cleanly without key/corpus
-- `data/` — gitignored: downloaded corpus PDFs + ChromaDB (rebuild with ingest)
+- `tests/` — pytest; `test_auth_db` (data/auth), retrieval/agent tests assert real docs, skip cleanly without key/corpus
+- `data/` — gitignored: corpus PDFs, ChromaDB, and `app.db` (SQLite)
 - `docs/architecture.md` — approved architecture, stack rationale, diagrams, data sources
 - `.claude/skills/` — `frontend-chat-ui`, `backend-rag-agent`, `testing`
 - `.claude/agents/` + `agents/memory/` — subagents (`explorer`, `code-reviewer`, `test-author`) + notes
 
-Run: `python -m app.backend.ingest --rebuild` (build corpus, once), then
-`.venv/bin/uvicorn app.main:app --port 8000`. Demo login `supervisor` / `DEMO_PASSWORD`.
-`/api/chat` runs the real Groq agent when `GROQ_API_KEY` is set, else the stub. Tests: `pytest tests/`.
-Still to wire (planned): Redis memory/cache, Langfuse observability, feedback→Postgres, Docker Compose, evals.
+Auth/roles: signup → PENDING → admin approves in `/admin` → email login. `admin` = full/user-mgmt,
+`employee` = chat + read only. Chats persist as sessions (sidebar history). Feedback persists to SQLite.
+
+Run: `python -m app.backend.ingest --rebuild` (corpus, once), then
+`.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000`. Seeded: admin `admin@floor.local` /
+`ADMIN_PASSWORD`, employee `supervisor@floor.local` / `DEMO_PASSWORD`. Tests: `pytest tests/` (24).
+Still to wire (planned): Redis memory/cache, Langfuse observability, Docker Compose, evals.
 
 _(Update this section as real structure — languages, services, entry points — takes shape.)_
