@@ -55,7 +55,7 @@ async def lifespan(_: FastAPI):
             try:
                 from app.backend.agent import _retriever  # noqa: PLC0415
 
-                _retriever()
+                _retriever().warm()  # actually load embed + rerank models
                 logger.info("agent models warmed")
             except Exception:  # noqa: BLE001
                 logger.exception("model warmup failed")

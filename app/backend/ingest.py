@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
         store.reset()
         log.info("collection_reset", name=settings.collection_name)
 
-    embedder = Embedder(settings.embed_model)
+    embedder = Embedder(settings.embed_model, settings.model_cache_dir)
 
     total = 0
     by_domain: dict[str, int] = {}

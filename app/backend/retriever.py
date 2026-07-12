@@ -49,9 +49,19 @@ class Retriever:
         self, settings: BackendSettings, store: VectorStore | None = None
     ) -> None:
         self._s = settings
-        self._embedder = Embedder(settings.embed_model)
-        self._reranker = Reranker(settings.rerank_model)
+        self._embedder = Embedder(settings.embed_model, settings.model_cache_dir)
+        self._reranker = Reranker(settings.rerank_model, settings.model_cache_dir)
         self._store = store or VectorStore(settings.chroma_dir, settings.collection_name)
+
+    def warm(self) -> None:
+        """Force the embedding and re-ranker models to load (call at startup).
+
+        The models load lazily on first use; loading them up front in a background
+        thread keeps the user's first real query fast instead of paying the (slow)
+        model-load cost inline.
+        """
+        self._embedder.embed_query("warmup")
+        self._reranker.score("warmup", ["warmup passage"])
 
     def retrieve(self, query: str, domain: str | None = None) -> RetrievalResult:
         """Run both retrieval stages and apply the evidence gate."""
