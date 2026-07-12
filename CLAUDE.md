@@ -81,9 +81,14 @@ Langfuse + structlog · Docker Compose. Build order: **frontend → backend → 
 Auth/roles: signup → PENDING → admin approves in `/admin` → email login. `admin` = full/user-mgmt,
 `employee` = chat + read only. Chats persist as sessions (sidebar history). Feedback persists to SQLite.
 
-Run: `python -m app.backend.ingest --rebuild` (corpus, once), then
-`.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000`. Seeded: admin `admin@floor.local` /
-`ADMIN_PASSWORD`, employee `supervisor@floor.local` / `DEMO_PASSWORD`. Tests: `pytest tests/` (24).
-Still to wire (planned): Redis memory/cache, Langfuse observability, Docker Compose, evals.
+Run (primary): `cp .env.example .env` (add `GROQ_API_KEY`) then `docker compose up --build` →
+http://localhost:8000. The container auto-ingests the corpus on first run and caches models/data in
+the `./data` volume (see README + Dockerfile/docker-entrypoint.sh). Local dev alt: ingest once, then
+`uvicorn app.main:app`. Seeded: admin `admin@floor.local` / `ADMIN_PASSWORD`, employee
+`supervisor@floor.local` / `DEMO_PASSWORD`. Tests: `pytest tests/` (24).
+
+Gotcha: the cross-encoder reranker must be a small model (`ms-marco-MiniLM-L-6-v2`) — `bge-reranker-base`
+is ~100x slower on CPU/containers where onnxruntime can't detect the CPU. Startup warms models; they
+cache under `data/models`. Still to wire (planned): Redis, Langfuse observability, evals.
 
 _(Update this section as real structure — languages, services, entry points — takes shape.)_

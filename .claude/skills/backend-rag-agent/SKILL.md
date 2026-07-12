@@ -39,5 +39,10 @@ Groq at temperature 0; embeddings and re-ranking run locally (no API, no rate li
 - The reranker's job is ORDERING and top-k selection, not gating. Gate on similarity.
 - Groq free tier is rate-limited — keep LLM calls minimal (route + generate + judge + 2 guards),
   temperature 0. Embeddings/rerank are local by design to keep the hot path off Groq.
+- Reranker MUST be small (`ms-marco-MiniLM-L-6-v2`). `bge-reranker-base` is ~100x slower on
+  CPU/containers where onnxruntime can't detect the CPU (a first Docker chat took 700s). Startup
+  warmup (`Retriever.warm()`) loads models so the first query is fast; models cache in `data/models`.
+- `load_backend_settings()` only overrides fields whose env var is set — don't re-hardcode defaults
+  there (doing so once silently overrode the dataclass reranker default).
 - Add a source: append to `sources.py`, run `ingest --rebuild`, add a retrieval test asserting
   the new doc is returned for a representative query.
