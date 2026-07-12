@@ -10,31 +10,36 @@ ChromaDB, and SQLite. Full design and diagrams: [docs/architecture.md](docs/arch
 
 ---
 
-## Quick start (Docker — recommended)
+## Run it (3 steps, ~5 minutes)
 
-You need **Docker Desktop** running and (optionally, for real answers) a free **Groq API key**.
+**Before you start:** install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and
+open it (wait until it says "Docker Desktop is running"). That's the only tool you need — you do
+**not** need Python, Node, or anything else installed.
+
+Copy-paste these into a terminal:
 
 ```bash
-# 1. Clone
+# 1. Get the code
 git clone https://github.com/alisaeidi0/interview_project.git
 cd interview_project
 
-# 2. Create your env file (works as-is; add your Groq key for real answers)
+# 2. Create your settings file (it works as-is)
 cp .env.example .env
-#    Open .env and paste your key into GROQ_API_KEY=   (see "Groq API key" below)
 
-# 3. Build and run
+# 3. Start the app
 docker compose up --build
 ```
 
-Then open **http://localhost:8000**.
+When you see `[entrypoint] starting server on http://0.0.0.0:8000`, open **http://localhost:8000**
+in your browser and sign in with the demo accounts below.
 
-> **First run takes a few minutes.** On the very first start the container downloads the embedding
-> models and the source documents and builds the search index. Subsequent starts are fast (the data
-> is cached in a `./data` volume). You'll see `[entrypoint] starting server on http://0.0.0.0:8000`
-> in the logs when it's ready.
+- **First run takes a few minutes** — it downloads the AI models and documents and builds the search
+  index (all automatic). Later starts take seconds.
+- **To stop:** press `Ctrl-C`, then optionally `docker compose down`.
 
-To stop: `Ctrl-C`, or `docker compose down`.
+> **Want real AI answers?** Add a **free Groq API key** to `.env` (line `GROQ_API_KEY=`) — see
+> [Groq API key](#groq-api-key) below. **Without a key the app still runs** and returns canned
+> answers, so you can explore the whole interface either way.
 
 ### Default logins
 
