@@ -1,0 +1,21 @@
+# Manufacturing Floor Assistant — one-command local run.
+#   cp .env.example .env   # then set GROQ_API_KEY
+#   docker compose up --build
+services:
+  app:
+    build: .
+    image: floor-assistant
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persist the corpus, vector store, SQLite DB, and generated secret across runs.
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 300s
